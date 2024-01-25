@@ -9,13 +9,29 @@
     tools:context=".ui.MainActivity">
 
     <!-- Top button line -->
-    <LinearLayout
+    <RelativeLayout
+        android:id="@+id/topButtonLine"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:gravity="end"
+        android:background="@color/white"
+        android:elevation="30dp"
         android:orientation="horizontal"
         android:padding="10dp">
+
+        <!-- Page title -->
+        <TextView
+            android:id="@+id/pageTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:paddingStart="20dp"
+            android:text="Dashboard"
+            android:textColor="@color/black"
+            android:visibility="gone"
+            android:textSize="@dimen/app_title_font_size"
+            android:textStyle="bold" />
 
         <!-- Add Bus btn -->
         <ImageView
@@ -23,6 +39,7 @@
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_marginRight="10dp"
+            android:layout_toStartOf="@id/SettingsButton"
             android:background="@drawable/settings_icons_bg"
             android:padding="10dp"
             android:src="@drawable/ic_add"
@@ -35,6 +52,7 @@
             android:id="@+id/SettingsButton"
             android:layout_width="50dp"
             android:layout_height="50dp"
+            android:layout_alignParentEnd="true"
             android:background="@drawable/settings_icons_bg"
             android:padding="3dp"
             android:src="@drawable/sidebar_settings_24"
@@ -42,7 +60,7 @@
             app:backgroundTint="@color/my_primary"
             app:tint="@color/white" />
 
-    </LinearLayout>
+    </RelativeLayout>
 
     <!-- No busses Layout -->
     <LinearLayout
@@ -88,7 +106,7 @@
                 android:textAlignment="center" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/AddFirstButton"
+                android:id="@+id/AddFirstBusButton"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:layout_marginBottom="40dp"
@@ -105,7 +123,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:visibility="gone">
 
         <!-- Headline -->
         <TextView
@@ -137,6 +156,30 @@
             android:text=""
             android:textColor="@color/colorRed" />
 
+        <!-- Bus nick name input layout -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="15dp"
+            android:background="@drawable/rounded_edittext_bg"
+            android:elevation="10dp"
+            app:boxBackgroundMode="none"
+            app:endIconMode="clear_text"
+            app:hintEnabled="false">
+
+            <!-- Bus nick name input text -->
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextBusNickName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/add_bus_text_input_hint_bus_nick_name"
+                android:inputType="text"
+                android:padding="15dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Registration number input layout -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -155,15 +198,15 @@
                 android:id="@+id/editTextRegistrationNumber"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ems="10"
                 android:hint="@string/add_bus_text_input_hint_bus_number"
                 android:inputType="text"
-                android:padding="15dp" />
+                android:padding="15dp"
+                android:textSize="16sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Route number input layout -->
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/routeAutoCompleteTextViewInputLayout"
+            android:id="@+id/routeNumberInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
@@ -175,29 +218,22 @@
             app:endIconMode="clear_text"
             app:hintEnabled="false">
 
-
-            <!--            <Spinner-->
-            <!--                android:id="@+id/routeNameSpinner"-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:ems="10"-->
-            <!--                android:padding="15dp"-->
-            <!--                android:layout_height="wrap_content" />-->
-
             <AutoCompleteTextView
                 android:id="@+id/routeNumberAutoCompleteTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:completionThreshold="1"
-                android:ems="10"
                 android:hint="@string/add_bus_text_input_hint_bus_route_number"
                 android:inputType="text"
-                android:padding="15dp" />
+                android:padding="15dp"
+                android:textSize="16sp" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
 
         <!-- Route Name input layout -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/routeNameInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
@@ -215,10 +251,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:completionThreshold="1"
-                android:ems="10"
                 android:hint="@string/add_bus_text_input_hint_bus_route_name"
                 android:inputType="text"
-                android:padding="15dp" />
+                android:padding="15dp"
+                android:textSize="16sp" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -240,10 +276,10 @@
                 android:id="@+id/editTextEmergencyContact"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ems="10"
                 android:hint="@string/add_bus_text_input_hint_bus_emergency_contact_number"
                 android:inputType="phone"
-                android:padding="15dp" />
+                android:padding="15dp"
+                android:textSize="16sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Color input layout -->
@@ -256,11 +292,10 @@
             android:layout_marginBottom="40dp"
             android:background="@drawable/rounded_edittext_bg"
             android:elevation="10dp"
-            android:ems="10"
             android:hint="@string/add_bus_text_input_hint_bus_color"
-            android:inputType="textPersonName"
             android:padding="15dp"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            android:textSize="16sp" />
 
 
         <!-- Add bus button -->
@@ -282,6 +317,35 @@
             android:textAlignment="center" />
 
     </LinearLayout>
+
+    <!-- Dashboard -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/topButtonLine"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/countOfBussesTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginBottom="20dp"
+            android:text="You currently have 4 buses in your fleet."
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Bus recycler view -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/bus_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="15dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    </LinearLayout>
+
 
     <!-- Loading ProgressBar -->
     <RelativeLayout

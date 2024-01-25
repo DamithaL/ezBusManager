@@ -60,6 +60,7 @@
     <!-- Add bus screen  -->
     <string name="add_bus_headline">Add a New Bus</string>
     <string name="add_bus_instruction">Please fill in the details below to add a new bus to the system.</string>
+    <string name="add_bus_text_input_hint_bus_nick_name">Bus Nick Name</string>
     <string name="add_bus_text_input_hint_bus_number">Bus Registration Number</string>
     <string name="add_bus_text_input_hint_bus_route_number">Bus Route Number</string>
     <string name="add_bus_text_input_hint_bus_route_name">Bus Route Name</string>
@@ -67,6 +68,9 @@
     <string name="add_bus_text_input_hint_bus_emergency_contact_number">Emergency Contact Number</string>
     <string name="add_bus_button_text">Add Bus</string>
     <string name="add_bus_help">If you encounter issues, contact us for assistance.</string>
+    <string name="add_bus_results_success_1">Bus Added Successfully!</string>
+    <string name="add_bus_results_success_2">You can now view the bus details in the bus list.</string>
+    <string name="error_message_invalid_form">Please fill in all the fields correctly.</string>
 
 
     <!-- Map screen   -->

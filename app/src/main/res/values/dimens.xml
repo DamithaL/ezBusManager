@@ -5,7 +5,7 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="icon_size_settings">25dp</dimen>
     <dimen name="space_size_settings">30dp</dimen>
-    <dimen name="app_title_font_size">18sp</dimen>
+    <dimen name="app_title_font_size">24sp</dimen>
     <dimen name="about_us_font_size">16sp</dimen>
     <dimen name="contact_us_card_padding">20dp</dimen>
     <dimen name="custom_marker_image">50dp</dimen>

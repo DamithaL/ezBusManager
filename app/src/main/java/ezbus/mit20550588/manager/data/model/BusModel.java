@@ -1,69 +1,78 @@
 package ezbus.mit20550588.manager.data.model;
 
+import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class BusModel {
+@Entity(tableName = "bus_account_table")
+public class BusModel implements Serializable {
 
-    private LatLng location;
-    private String busId;
-    private String busNumber;
-    private String routeId;
+    @PrimaryKey(autoGenerate = true)
+    private int busId;
+    private String busNickName;
+    private String busRegNumber;
+    private String busRouteNumber;
+    private String busRouteName;
+    private String busEmergencyNumber;
     private String busColor;
 
-    private boolean hasBusPassedBusStop;
+    @Nullable
+    @ColumnInfo(name = "busConductorEmail")
+    private String busConductorEmail;
 
-    private Date lastUpdatedTime;
-
-    public BusModel(String busId, String busNumber, double latitude, double longitude, String routeId, String busColor, LatLng location, boolean hasBusPassedBusStop) {
-        this.busId = busId;
-        this.busNumber = busNumber;
-        this.routeId = routeId;
+    public BusModel(String busNickName, String busRegNumber, String busRouteNumber, String busRouteName, String busEmergencyNumber, String busColor, String busConductorEmail) {
+        this.busNickName = busNickName;
+        this.busRegNumber = busRegNumber;
+        this.busRouteNumber = busRouteNumber;
+        this.busRouteName = busRouteName;
+        this.busEmergencyNumber = busEmergencyNumber;
         this.busColor = busColor;
-        this.location = location;
-        this.hasBusPassedBusStop = hasBusPassedBusStop;
-       
+        this.busConductorEmail = busConductorEmail;
     }
 
-    public String getBusId() {
+    public int getBusId() {
         return busId;
     }
 
-    public String getBusNumber() {
-        return busNumber;
+    public String getBusNickName() {
+        return busNickName;
     }
 
-    public Date getLastUpdatedTime() {
-        return lastUpdatedTime;
+    public String getBusRegNumber() {
+        return busRegNumber;
     }
 
-    public String getRouteId() {
-        return routeId;
+    public String getBusRouteNumber() {
+        return busRouteNumber;
+    }
+
+    public String getBusRouteName() {
+        return busRouteName;
+    }
+
+    public String getBusEmergencyNumber() {
+        return busEmergencyNumber;
     }
 
     public String getBusColor() {
         return busColor;
     }
 
-    public LatLng getLocation() {
-        return location;
+    public String getBusConductorEmail() {
+        return busConductorEmail;
     }
 
-    public boolean hasBusPassedBusStop() {
-        return hasBusPassedBusStop;
+    public void setBusId(int busId) {
+        this.busId = busId;
     }
 
-    @Override
-    public String toString() {
-        return "BusModel{" +
-                "location=" + location +
-                ", busId='" + busId + '\'' +
-                ", busNumber='" + busNumber + '\'' +
-                ", routeId='" + routeId + '\'' +
-                ", busColor='" + busColor + '\'' +
-                ", hasBusPassedBusStop=" + hasBusPassedBusStop +
-                ", lastUpdatedTime=" + lastUpdatedTime +
-                '}';
+    public void setBusConductorEmail(String busConductorEmail) {
+        this.busConductorEmail = busConductorEmail;
     }
 }

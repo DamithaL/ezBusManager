@@ -25,7 +25,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -44,10 +47,12 @@ import java.util.List;
 import java.util.Map;
 
 import ezbus.mit20550588.manager.R;
+import ezbus.mit20550588.manager.data.model.BusModel;
 import ezbus.mit20550588.manager.data.viewModel.BusViewModel;
 import ezbus.mit20550588.manager.ui.Login.FleetRegistration;
 import ezbus.mit20550588.manager.ui.Login.Login;
 import ezbus.mit20550588.manager.ui.Settings.Settings;
+import ezbus.mit20550588.manager.ui.adapters.BusListAdapter;
 import ezbus.mit20550588.manager.util.Constants;
 import ezbus.mit20550588.manager.util.FleetStateManager;
 import ezbus.mit20550588.manager.util.UserStateManager;
@@ -70,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     // ---- permissions ---- //
     private SharedPreferences preferences;
 
-    private int currentColor = Color.BLACK;
+    private int currentColor;
     private TextView colorEditText;
 
     private List<String> validRouteNames = new ArrayList<>();
@@ -78,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> validRouteNumbers = new ArrayList<>();
     private AutoCompleteTextView routeNumberAutoCompleteTextView;
     private AutoCompleteTextView routeNameAutoCompleteTextView;
+    private BusListAdapter busListAdapter;
 
 
     private BusViewModel busViewModel;
@@ -88,46 +94,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        findViewById(R.id.loadingProgressBar).setVisibility(View.VISIBLE);
         managerAuthentication();
         checkPermissions();
         busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
         uiInitializations();
 
     }
-
-    // Helper method to check if the entered text is a valid route
-    private boolean isValidRoute(String enteredText, List<String> validRoutes) {
-        for (String route : validRoutes) {
-            if (route.equalsIgnoreCase(enteredText)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-//    private final TextWatcher filterTextWatcherForSearchBar = new TextWatcher() {
-//        @Override
-//        public void afterTextChanged(Editable s) {
-//            boolean isTextEmpty = s.toString().equals("");
-//            if (!isTextEmpty) {
-//                busViewModel.fetchRouteNames();
-//            }
-//
-//
-//        }
-//
-//        @Override
-//        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-//          //  busViewModel.fetchRouteNames();
-//          //  routeAutoCompleteTextView.showDropDown();
-//        }
-//
-//        @Override
-//        public void onTextChanged(CharSequence s, int start, int before, int count) {
-//        }
-//    };
-
 
     // ------------------------------- PERMISSION RELATED METHODS ------------------------------- //
     private void checkPermissions() {
@@ -203,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         FleetStateManager fleetManager = FleetStateManager.getInstance();
 
         if (!fleetManager.isFleetLoggedIn()) {
+
             Intent authIntent = new Intent(MainActivity.this, FleetRegistration.class);
             startActivity(authIntent);
             finish();
@@ -212,89 +186,71 @@ public class MainActivity extends AppCompatActivity {
 
     private void uiInitializations() {
 
+        findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
+
         initSettingsButton();
-
-        if (busViewModel.getBusCount == 0) {
-            initNewBusForm();
-        }
-
-
+        busViewModel.getBusCount().observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer integer) {
+                if (integer != null) {
+                    if (integer == 0) {
+                        findViewById(R.id.NoBussesLayout).setVisibility(View.VISIBLE);
+                        findViewById(R.id.AddFirstBusButton).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                findViewById(R.id.NoBussesLayout).setVisibility(View.GONE);
+                                initNewBusForm();
+                            }
+                        });
+                    } else {
+                        initDashboard();
+                    }
+                }
+            }
+        });
     }
 
-    private void initNewBusForm() {
-
-        // ------------ BUS COLOUR ------------ //
-        colorEditText = findViewById(R.id.colorEditText);
-        colorEditText.setOnClickListener(new View.OnClickListener() {
+    private void initDashboard() {
+        findViewById(R.id.addBusFormLayout).setVisibility(View.GONE);
+        findViewById(R.id.AddBusButton).setVisibility(View.VISIBLE);
+        findViewById(R.id.pageTitle).setVisibility(View.VISIBLE);
+        findViewById(R.id.AddBusButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                openColorPicker();
+                initNewBusForm();
             }
         });
 
-        // ------------ ADD BUS BUTTON ------------ //
-        initNewBusFormSubmitButton();
+        RecyclerView recyclerViewForBusses = (RecyclerView) findViewById(R.id.bus_recycler_view);
+        recyclerViewForBusses.setLayoutManager(new LinearLayoutManager(this));
+        //  recyclerViewForNewTickets.setHasFixedSize(true);
 
-        // ------------ BUS ROUTE NUMBER AND NAME ------------ //
-        initLiveDataObservingForNewBusForm();
+        busListAdapter = new BusListAdapter();
 
+        recyclerViewForBusses.setAdapter(busListAdapter);
+        busListAdapter.setRecyclerView(recyclerViewForBusses);
+        busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
+        busViewModel.getBusAccounts().observe(this, new Observer<List<BusModel>>() {
+            @Override
+            public void onChanged(List<BusModel> busList) {
+                busListAdapter.submitList(busList);
+                busListAdapter.scrollToTop();
+            }
+        });
 
-        // Set an OnFocusChangeListener to validate the input when focus changes
-        routeAutoCompleteTextView.setOnFocusChangeListener((v, hasFocus) -> {
-            Log("MainActivity", "OnFocusChangeListener - hasFocus: " + hasFocus);
-
-            TextInputLayout routeAutoCompleteTextViewInputLayout = findViewById(R.id.routeAutoCompleteTextViewInputLayout);
-
-            if (!hasFocus) {
-                // Check if the entered text is a valid option
-                String enteredText = routeAutoCompleteTextView.getText().toString();
-                if (!isValidRoute(enteredText, validRouteNames)) {
-                    Log("MainActivity", "isValidRoute", "false");
-                    routeAutoCompleteTextViewInputLayout.setEndIconVisible(false);
-                    routeAutoCompleteTextView.setError("Invalid route number. Please select from the list.");
+        TextView busCountText = findViewById(R.id.countOfBussesTextView);
+        busViewModel.getBusCount().observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer integer) {
+                if (integer == 1) {
+                    String newText = "You currently have " + integer + " bus in your fleet.";
+                    busCountText.setText(newText);
                 } else {
-                    Log("MainActivity", "isValidRoute", "true");
-                    routeAutoCompleteTextView.setError(null); // Clear any previous error
-                }
-            }
-            // If the AutoCompleteTextView is focused, show the dropdown list
-            else {
-                routeAutoCompleteTextView.showDropDown();
-
-
-            }
-        });
-    }
-
-    private void initLiveDataObservingForNewBusForm() {
-
-        busViewModel.getRouteNumbersLiveData().observe(this, routeNumbers -> {
-            if (routeNumbers != null) {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, routeNumbers);
-                routeNumberAutoCompleteTextView.setAdapter(adapter);
-                if (validRouteNumbers != null) {
-                    validRouteNumbers = routeNumbers;
+                    String newText = "You currently have " + integer + " buses in your fleet.";
+                    busCountText.setText(newText);
                 }
             }
         });
-
-        busViewModel.getRouteNamesLiveData().observe(this, routeNames -> {
-            if (routeNames != null) {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, routeNames);
-                routeNameAutoCompleteTextView.setAdapter(adapter);
-                    validRouteNames = routeNames;
-            }
-        });
-
-        busViewModel.getErrorMessageLiveData().observe(this, errorMessage -> {
-            if (errorMessage != null) {
-                TextView errorTextView = findViewById(R.id.errorMessageTextView);
-                errorTextView.setText(errorMessage);
-            }
-        });
-
-        busViewModel.fetchRouteNumbers();
-        busViewModel.fetchRouteNames();
     }
 
     private void initSettingsButton() {
@@ -314,24 +270,141 @@ public class MainActivity extends AppCompatActivity {
         Log("initSettingsButton", "initialized");
     }
 
-    private void initNewBusFormSubmitButton() {
-        Button newBusFormSubmitButton = findViewById(R.id.NewBusFormSubmitButton);
 
-        // Set an OnClickListener for the Settings Button
-        newBusFormSubmitButton.setOnClickListener(new View.OnClickListener() {
+    // ------------------------------- NEW BUS CREATION METHODS ------------------------------- //
+    private void initNewBusForm() {
+
+        findViewById(R.id.addBusFormLayout).setVisibility(View.VISIBLE);
+
+        // ------------ BUS ROUTE NUMBER AND NAME ------------ //
+        routeNumberAutoCompleteTextView = findViewById(R.id.routeNumberAutoCompleteTextView);
+        routeNameAutoCompleteTextView = findViewById(R.id.routeNameAutoCompleteTextView);
+        initLiveDataObservingForNewBusForm();
+        initFocusChangeListenerForRouteNumber();
+        initFocusChangeListenerForRouteName();
+
+        // ------------ BUS COLOUR ------------ //
+        colorEditText = findViewById(R.id.colorEditText);
+        colorEditText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                // Open the SettingsActivity when the fab is clicked
-//                Intent intent = new Intent(MainActivity.this, Settings.class);
-//                // Intent intent = new Intent(MainActivity.this, CheckoutActivity.class);
-//                startActivity(intent);
-
-                Log("Main", "initNewBusFormSubmitButton", "clicked");
-                Log("Main", "initNewBusFormSubmitButton", routeAutoCompleteTextView.getText().toString());
+                openColorPicker();
             }
         });
 
-        Log("initSettingsButton", "initialized");
+        // ------------ ADD BUS BUTTON ------------ //
+        initNewBusFormSubmitButton();
+
+
+    }
+
+    private void initLiveDataObservingForNewBusForm() {
+
+        busViewModel.getRouteNumbersLiveData().observe(this, routeNumbers -> {
+            if (routeNumbers != null) {
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, routeNumbers);
+                routeNumberAutoCompleteTextView.setAdapter(adapter);
+                if (validRouteNumbers != null) {
+                    validRouteNumbers = routeNumbers;
+                }
+            }
+        });
+
+        busViewModel.getRouteNamesLiveData().observe(this, routeNames -> {
+            if (routeNames != null) {
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, routeNames);
+                routeNameAutoCompleteTextView.setAdapter(adapter);
+                validRouteNames = routeNames;
+            }
+        });
+
+        busViewModel.getErrorMessageLiveData().observe(this, errorMessage -> {
+            if (errorMessage != null) {
+                TextView errorTextView = findViewById(R.id.errorMessageTextView);
+                errorTextView.setText(errorMessage);
+            }
+        });
+
+        busViewModel.fetchRouteNumbers();
+        busViewModel.fetchRouteNames("");
+    }
+
+    private void initFocusChangeListenerForRouteNumber() {
+
+        TextInputLayout routeNumberTextInputLayout = findViewById(R.id.routeNumberInputLayout);
+
+        routeNumberAutoCompleteTextView.setOnFocusChangeListener((v, hasFocus) -> {
+            Log("MainActivity", "OnFocusChangeListener - hasFocus: " + hasFocus);
+            // If the AutoCompleteTextView is not focused
+            if (!hasFocus) {
+                String enteredText = routeNumberAutoCompleteTextView.getText().toString();
+                // If the entered text is not a valid option, show an error
+                if (!isValidEntry(enteredText, validRouteNumbers)) {
+                    routeNumberTextInputLayout.setEndIconVisible(false);
+                    routeNumberAutoCompleteTextView.setError("Invalid route number. Please select from the list.");
+                } else {
+                    routeNumberAutoCompleteTextView.setError(null);
+                    busViewModel.fetchRouteNames(enteredText);
+                }
+            }
+            // If the AutoCompleteTextView is focused, show the dropdown list
+            else {
+                routeNumberAutoCompleteTextView.showDropDown();
+            }
+        });
+    }
+
+    private void initFocusChangeListenerForRouteName() {
+
+        TextInputLayout routeNameTextInputLayout = findViewById(R.id.routeNameInputLayout);
+
+        routeNameAutoCompleteTextView.setOnFocusChangeListener((v, hasFocus) -> {
+            Log("MainActivity", "OnFocusChangeListener - hasFocus: " + hasFocus);
+            // If the AutoCompleteTextView is not focused
+            if (!hasFocus) {
+                String enteredText = routeNameAutoCompleteTextView.getText().toString();
+                // If the entered text is not a valid option, show an error
+                if (!isValidEntry(enteredText, validRouteNames)) {
+                    routeNameTextInputLayout.setEndIconVisible(false);
+                    routeNameAutoCompleteTextView.setError("Invalid route name. Please select from the list.");
+                } else {
+                    routeNameAutoCompleteTextView.setError(null); // Clear any previous error
+                }
+            }
+            // If the AutoCompleteTextView is focused, show the dropdown list
+            else {
+                routeNameAutoCompleteTextView.showDropDown();
+            }
+        });
+    }
+
+
+    private void initNewBusFormSubmitButton() {
+        Button newBusFormSubmitButton = findViewById(R.id.NewBusFormSubmitButton);
+        newBusFormSubmitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log("Main", "initNewBusFormSubmitButton", "clicked");
+
+                String busNickName = ((EditText) findViewById(R.id.editTextBusNickName)).getText().toString();
+                String busNumber = ((EditText) findViewById(R.id.editTextRegistrationNumber)).getText().toString();
+                String routeNumber = routeNumberAutoCompleteTextView.getText().toString();
+                String routeName = routeNameAutoCompleteTextView.getText().toString();
+                String emergencyContact = ((EditText) findViewById(R.id.editTextEmergencyContact)).getText().toString();
+                String busColor = String.valueOf(currentColor);
+
+                if (validateAddNewBusForm(busNickName, busNumber, routeNumber, routeName, emergencyContact, busColor)) {
+                    BusModel newBus = new BusModel(busNickName, busNumber, routeNumber, routeName, emergencyContact, busColor, null);
+
+                    busViewModel.addNewBus(newBus);
+                    Log("Main", "initNewBusFormSubmitButton", "new bus added");
+                } else {
+                    Log("Main", "initNewBusFormSubmitButton", "invalid form");
+                }
+
+
+            }
+        });
     }
 
 
@@ -372,13 +445,64 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onOk(AmbilWarnaDialog dialog, int color) {
-                // Update the current color and set it to the EditText
                 currentColor = color;
                 colorEditText.setBackgroundColor(color);
             }
         });
 
         colorPicker.show();
+    }
+
+    private boolean isValidEntry(String enteredText, List<String> validEntryList) {
+        for (String route : validEntryList) {
+            if (route.equalsIgnoreCase(enteredText)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Boolean validateAddNewBusForm(String busNickName, String busNumber, String routeNumber, String routeName, String emergencyContact, String busColor) {
+
+        Boolean isValid = true;
+        ((TextView) findViewById(R.id.colorEditText)).setError(null);
+
+        if (TextUtils.isEmpty(busNickName)) {
+            ((EditText) findViewById(R.id.editTextBusNickName)).setError("Please enter a valid bus nickname");
+            isValid = false;
+        }
+        if (TextUtils.isEmpty(busNumber)) {
+            ((EditText) findViewById(R.id.editTextRegistrationNumber)).setError("Please enter a valid bus registration number");
+            isValid = false;
+        }
+        if (TextUtils.isEmpty(routeNumber)) {
+            routeNumberAutoCompleteTextView.setError("Please enter a valid route number");
+            isValid = false;
+        }
+        if (TextUtils.isEmpty(routeName)) {
+            routeNameAutoCompleteTextView.setError("Please enter a valid route name");
+            isValid = false;
+        }
+        if (TextUtils.isEmpty(emergencyContact)) {
+            ((EditText) findViewById(R.id.editTextEmergencyContact)).setError("Please enter a valid emergency contact");
+            isValid = false;
+        }
+
+        if (!emergencyContact.matches("0[0-9]{9}")) {
+            ((EditText) findViewById(R.id.editTextEmergencyContact)).setError("Please enter a valid emergency contact");
+            isValid = false;
+        }
+
+        if (busColor.equals("0")) {
+            ((TextView) findViewById(R.id.colorEditText)).setError("Please select a bus color");
+            isValid = false;
+        }
+        if (!isValid) {
+            TextView errorTextView = findViewById(R.id.errorMessageTextView);
+            errorTextView.setText(getString(R.string.error_message_invalid_form));
+        }
+        return isValid;
+
     }
 }
 
