@@ -4,6 +4,8 @@ import java.util.Map;
 
 import ezbus.mit20550588.manager.data.model.UserModel;
 
+import ezbus.mit20550588.manager.data.network.requests.LoginRequest;
+import ezbus.mit20550588.manager.data.network.requests.RegistrationRequest;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.POST;

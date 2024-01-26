@@ -5,40 +5,33 @@ import static ezbus.mit20550588.manager.util.Constants.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import ezbus.mit20550588.manager.data.model.FleetModel;
-import ezbus.mit20550588.manager.data.model.UserModel;
 import ezbus.mit20550588.manager.data.network.ApiBus;
-import ezbus.mit20550588.manager.data.network.ApiServiceAuthentication;
-import ezbus.mit20550588.manager.data.network.LoginRequest;
-import ezbus.mit20550588.manager.data.network.RegistrationRequest;
-import ezbus.mit20550588.manager.data.viewModel.AuthResult;
-import ezbus.mit20550588.manager.data.viewModel.CheckFleetStatusResponse;
+import ezbus.mit20550588.manager.data.network.responses.FleetCheckResponse;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class FleetRepository {
     private ApiBus apiService;
-    private MutableLiveData<CheckFleetStatusResponse> checkStatusLiveData = new MutableLiveData<>();
+    private MutableLiveData<FleetCheckResponse> checkStatusLiveData = new MutableLiveData<>();
 
-    private MutableLiveData<String> regReqResponseLiveData = new MutableLiveData<>();
+    private MutableLiveData<FleetCheckResponse> regReqResponseLiveData = new MutableLiveData<>();
     private MutableLiveData<String> errorMessageLiveData = new MutableLiveData<>();
-
 
 
     public FleetRepository(ApiBus apiService) {
         this.apiService = apiService;
     }
 
-    public LiveData<CheckFleetStatusResponse> getCheckFleetStatusLiveData() {
+    public LiveData<FleetCheckResponse> getCheckFleetStatusLiveData() {
         return checkStatusLiveData;
     }
 
-    public LiveData<String> getRegReqResponseLiveData() {
+    public LiveData<FleetCheckResponse> getRegReqResponseLiveData() {
         return regReqResponseLiveData;
     }
 
@@ -47,33 +40,31 @@ public class FleetRepository {
     }
 
 
-    public void checkFleetStatus(FleetModel fleet) {
-        apiService.registerFleet(fleet).enqueue(new Callback<Map<String, String>>() {
+    // TODO: 2024-01-27 More security should be added to this method with the use of a token
+    public void checkFleetStatus(String email) {
+
+        Map<String, String> managerEmail = new HashMap<>();
+        managerEmail.put("email", email);
+        apiService.checkFleetStatus(managerEmail).enqueue(new Callback<FleetCheckResponse>() {
             @Override
-            public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
+            public void onResponse(Call<FleetCheckResponse> call, Response<FleetCheckResponse> response) {
                 try {
-                    if (response.isSuccessful()) {
-
-                        if (response.body() != null) {
-                            checkStatusLiveData.setValue(new CheckFleetStatusResponse(response.body().toString(), response.code()));
-                        }
-
-                    } else {
-
-                        if (response.body() != null) {
-                            checkStatusLiveData.setValue(new CheckFleetStatusResponse(response.body().toString(), response.code()));
-                        }
-
+                    if (response.isSuccessful() && response.body() != null) {
+                        Log("Fleet repository", "onResponse", "response.body(): " + response.body().toString());
+                        Log("Fleet repository", "onResponse", "response.body().getFleet(): " + response.body().getFleet());
+                        FleetCheckResponse fleetResponse = new FleetCheckResponse(response.body().getFleet(), response.body().getMessage(), response.code());
+                        checkStatusLiveData.setValue(fleetResponse);
+                        Log("Fleet repository", "onResponse", "checkStatusLiveData"+  checkStatusLiveData.toString());
                     }
                 } catch (Exception e) {
                     errorMessageLiveData.setValue(e.getMessage());
+                    Log("Fleet repository", "onResponse", e.getMessage());
                 }
             }
 
-
             @Override
-            public void onFailure(Call<Map<String, String>> call, Throwable t) {
-                Log("User repository", "onFailure", t.getMessage());
+            public void onFailure(Call<FleetCheckResponse> call, Throwable t) {
+                Log("Fleet repository", "onFailure", t.getMessage());
                 String errorMessage = "Network failure.";
                 errorMessageLiveData.setValue(errorMessage); // Set error message LiveData
             }
@@ -82,44 +73,41 @@ public class FleetRepository {
 
     public void registerFleet(FleetModel newFleet) {
 
-        apiService.registerFleet(newFleet).enqueue(new Callback<Map<String, String>>() {
+        apiService.registerFleet(newFleet).enqueue(new Callback<FleetCheckResponse>() {
             @Override
-            public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
+            public void onResponse(Call<FleetCheckResponse> call, Response<FleetCheckResponse> response) {
                 try {
                     if (response.isSuccessful()) {
                         // if Bus fleet registration request received
                         if (response.body() != null) {
-                            regReqResponseLiveData.setValue(response.body().toString());
+                            FleetCheckResponse fleetResponse = new FleetCheckResponse(response.body().getFleet(), response.body().getMessage(), response.code());
+                            regReqResponseLiveData.setValue(fleetResponse);
                         }
-
                     } else {
-
                         String errorMessage = "Registration failed. ";
                         if (response.errorBody() != null) {
                             try {
                                 errorMessage += response.errorBody().string();
-                            } catch (IOException e) {
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }
-                        errorMessageLiveData.setValue(errorMessage); // Set error message LiveData
-
+                        errorMessageLiveData.setValue(errorMessage);
                     }
                 } catch (Exception e) {
                     errorMessageLiveData.setValue(e.getMessage());
                 }
             }
 
-
             @Override
-            public void onFailure(Call<Map<String, String>> call, Throwable t) {
-                Log("User repository", "onFailure", t.getMessage());
+            public void onFailure(Call<FleetCheckResponse> call, Throwable t) {
+
+                Log("Fleet repository", "onFailure", t.getMessage());
                 String errorMessage = "Network failure.";
                 errorMessageLiveData.setValue(errorMessage); // Set error message LiveData
             }
         });
     }
-
 
 
 }

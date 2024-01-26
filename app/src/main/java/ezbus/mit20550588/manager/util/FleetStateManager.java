@@ -65,11 +65,26 @@ public class FleetStateManager {
     private void loadFleetModel() {
         String fleetModelJson = preferences.getString(KEY_FLEET_MODEL, null);
         if (fleetModelJson != null) {
-            Type type = new TypeToken<FleetModel>() {}.getType();
+            Type type = new TypeToken<FleetModel>() {
+            }.getType();
             fleet = gson.fromJson(fleetModelJson, type);
         }
     }
 
+    // method to clear fleet data
+    public void clearFleetData() {
+
+        // Set user as not logged in
+        setFleetLoggedIn(false);
+
+        // Optionally, set the user to null
+        FleetStateManager.getInstance().setFleet(null);
+
+        // Clear both fleet model and logged-in status
+        preferences.edit().remove(KEY_FLEET_MODEL).remove(KEY_FLEET_LOGGED_IN).apply();
+
+
+    }
 
 
 }

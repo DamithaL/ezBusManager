@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ClickableSpan;
@@ -19,20 +18,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
-
-import java.util.Objects;
 
 import ezbus.mit20550588.manager.R;
 import ezbus.mit20550588.manager.data.model.FleetModel;
-import ezbus.mit20550588.manager.data.model.UserModel;
-import ezbus.mit20550588.manager.data.viewModel.AuthViewModel;
+import ezbus.mit20550588.manager.data.network.responses.FleetCheckResponse;
+import ezbus.mit20550588.manager.data.viewModel.BusViewModel;
 import ezbus.mit20550588.manager.data.viewModel.FleetViewModel;
 import ezbus.mit20550588.manager.ui.MainActivity;
 import ezbus.mit20550588.manager.ui.Settings.ContactUs;
-import ezbus.mit20550588.manager.ui.Settings.PrivacyPolicyActivity;
 import ezbus.mit20550588.manager.ui.Settings.Settings;
-import ezbus.mit20550588.manager.ui.Settings.TermConditions;
 import ezbus.mit20550588.manager.util.Constants;
 import ezbus.mit20550588.manager.util.FleetStateManager;
 import ezbus.mit20550588.manager.util.UserStateManager;
@@ -41,13 +35,34 @@ public class FleetRegistration extends AppCompatActivity {
 
     private FleetViewModel fleetViewModel;
 
+    private BusViewModel busViewModel;
+
     private FleetModel newFleet;
+
+    private FleetStateManager fleetManager;
+
+    private UserStateManager userManager;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log("FleetRegistration", "onResume", "Started");
+        fleetViewModel.checkFleetStatus(userManager.getUser().getEmail());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fleet_registration);
 
+        Log("FleetRegistration", "onCreate", "Started");
+
+        initUi();
+        initializeViewModel();
+        initSettingsButton();
+    }
+
+    private void initUi() {
         // Show the loading progress bar
         findViewById(R.id.loadingProgressBar).setVisibility(View.VISIBLE);
 
@@ -63,59 +78,65 @@ public class FleetRegistration extends AppCompatActivity {
         // Hide the suspended layout
         findViewById(R.id.SuspendedLayout).setVisibility(View.GONE);
 
-        initializeViewModel();
-        checkFleetStatus();
-        initSettingsButton();
+        // Hide the RejectedLayout layout
+        findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+
+        fleetManager = FleetStateManager.getInstance();
+
+        initRegistrationLayout();
     }
 
-    private void checkFleetStatus() {
+    private void initializeViewModel() {
 
-        Log("checkFleetStatus", "Started");
+        Log("initializeViewModel", "Started");
 
-        FleetStateManager fleetManager = FleetStateManager.getInstance();
-        Log("checkFleetStatus", "fleetManager", String.valueOf(fleetManager.isFleetLoggedIn()));
+        fleetViewModel = new ViewModelProvider(this).get(FleetViewModel.class);
 
-        if (fleetManager.getFleet() != null) {
-            Log("checkFleetStatus", "fleetManager.getFleet()", "not null");
-
-            String fleetStatus = fleetManager.getFleet().getFleetStatus();
-
-            if (Objects.equals(fleetStatus, "Approved")) {
-
-                // Show the approved layout
-                findViewById(R.id.ApprovedLayout).setVisibility(View.VISIBLE);
-                Log("checkFleetStatus", "fleetStatus", "Approved");
-                initContinueButton();
-
-            } else if (Objects.equals(fleetStatus, "Pending")) {
-
-                // Show the pending layout
-                findViewById(R.id.PendingLayout).setVisibility(View.VISIBLE);
-                // Trigger check status operation in ViewModel
-                fleetViewModel.checkFleetStatus(fleetManager.getFleet());
-                Log("checkFleetStatus", "fleetStatus", "Pending");
-
-            } else if (Objects.equals(fleetStatus, "Rejected")) {
-
-                // Show the rejected layout
-                findViewById(R.id.RejectedLayout).setVisibility(View.VISIBLE);
-                Log("checkFleetStatus", "fleetStatus", "Rejected");
-
-            } else if (Objects.equals(fleetStatus, "Suspended")) {
-
-                // Show the suspended layout
-                findViewById(R.id.SuspendedLayout).setVisibility(View.VISIBLE);
-                Log("checkFleetStatus", "fleetStatus", "Suspended");
+        // Observe check fleet status result
+        fleetViewModel.getCheckFleetStatusLiveData().observe(this, FleetStatus -> {
+            if (FleetStatus != null) {
+                Log("initializeViewModel", "getCheckFleetStatusLiveData", "Received");
+                handleFleetResponse(FleetStatus);
             }
+        });
 
-            // Hide the loading progress bar
-            findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
+        // Observe authentication result
+        fleetViewModel.getRegReqResponseLiveData().observe(this, FleetStatus -> {
+            if (FleetStatus != null) {
+                Log("initializeViewModel", "getRegReqResponseLiveData", "Received");
+                handleFleetResponse(FleetStatus);
+            }
+        });
 
-        } else {
-            Log("checkFleetStatus", "fleetManager.getFleet()", "Null");
-            initRegistrationLayout();
-        }
+        // Observe the error message LiveData
+        fleetViewModel.getErrorMessageLiveData().observe(this, errorMessage -> {
+            if (errorMessage != null) {
+                Log("initializeViewModel", "getErrorMessageLiveData", "Received");
+                // Hide the loading progress bar
+                findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
 
+                TextView errorTextView = findViewById(R.id.errorMessageTextView);
+                errorTextView.setText(errorMessage);
+            }
+        });
+
+        userManager = UserStateManager.getInstance();
+        fleetViewModel.checkFleetStatus(userManager.getUser().getEmail());
+
+        busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
+        busViewModel.loadBusAccountsLiveData().observe(this, busAccounts -> {
+            if (busAccounts != null) {
+                Log("initializeViewModel", "loadBusAccountsLiveData", "Received");
+                if (busAccounts.size() > 0) {
+                    fleetManager.setFleetLoggedIn(true);
+
+                    // Go to Main Activity
+                    Intent intent = new Intent(FleetRegistration.this, MainActivity.class);
+                    startActivity(intent);
+                    finish();
+                }
+            }
+        });
     }
 
     private void initSettingsButton() {
@@ -135,86 +156,25 @@ public class FleetRegistration extends AppCompatActivity {
         findViewById(R.id.ContinueButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log("initializeViewModel","ContinueButton", "Clicked");
+                Log("initContinueButton", "ContinueButton", "Clicked");
 
-                FleetStateManager fleetManager = FleetStateManager.getInstance();
                 fleetManager.setFleetLoggedIn(true);
 
                 // Go to Main
                 Intent intent = new Intent(FleetRegistration.this, MainActivity.class);
                 startActivity(intent);
                 finish();
-                Log("initializeViewModel","ContinueButton", "Clicked");
-
             }
         });
     }
 
-    private void initializeViewModel() {
-
-
-        fleetViewModel = new ViewModelProvider(this).get(FleetViewModel.class);
-
-        // Observe check fleet status result
-        fleetViewModel.getCheckFleetStatusLiveData().observe(this, FleetStatus -> {
-            if (FleetStatus != null) {
-
-                // Hide the loading progress bar
-                findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
-
-                // Hide the pending layout
-                findViewById(R.id.PendingLayout).setVisibility(View.GONE);
-
-                FleetStateManager fleetManager = FleetStateManager.getInstance();
-                FleetModel fleet = fleetManager.getFleet();
-                FleetModel newFleet = new FleetModel(fleet);
-
-                if (FleetStatus.getResponseCode() == 208) {
-                    newFleet.setFleetStatus("Approved");
-                    findViewById(R.id.ApprovedLayout).setVisibility(View.VISIBLE);
-                    Log("initializeViewModel","Fleet Status", "Approved");
-                    initContinueButton();
-
-                } else if (FleetStatus.getResponseCode() == 403) {
-                    newFleet.setFleetStatus("Suspended");
-                    findViewById(R.id.SuspendedLayout).setVisibility(View.VISIBLE);
-
-                } else if (FleetStatus.getResponseCode() == 406) {
-                    newFleet.setFleetStatus("Pending");
-                    findViewById(R.id.PendingLayout).setVisibility(View.VISIBLE);
-
-                } else {
-                    newFleet.setFleetStatus("Rejected");
-                    findViewById(R.id.RejectedLayout).setVisibility(View.VISIBLE);
-                }
-
-                // Update the user newFleet status
-                fleetManager.setFleet(newFleet);
-
-            }
-        });
-
-        // Observe authentication result
-        fleetViewModel.getRegReqResponseLiveData().observe(this, message -> {
-            if (message != null) {
-
-                // Hide the loading progress bar
-                findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
-
-                handleSignUpResult(message);
-            }
-        });
-
-        // Observe the error message LiveData
-        fleetViewModel.getErrorMessageLiveData().observe(this, errorMessage -> {
-            if (errorMessage != null) {
-
-                // Hide the loading progress bar
-                findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
-
-                TextView errorTextView = findViewById(R.id.errorMessageTextView);
-                errorTextView.setText(errorMessage);
-
+    private void initRetryButton() {
+        findViewById(R.id.RetryButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log("initRetryButton", "RetryButton", "Clicked");
+                findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.VISIBLE);
             }
         });
     }
@@ -226,7 +186,6 @@ public class FleetRegistration extends AppCompatActivity {
 
         // Show the registration layout
         findViewById(R.id.fleetRegistrationLayout).setVisibility(View.VISIBLE);
-
 
         // Help Text
         TextView helpTextView = findViewById(R.id.helpText);
@@ -259,11 +218,11 @@ public class FleetRegistration extends AppCompatActivity {
         // Make the TextView clickable
         helpTextView.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
 
-        setupClickListeners();
+        initSubmitButton();
 
     }
 
-    private void setupClickListeners() {
+    private void initSubmitButton() {
         // Listening to the Signup Button
         findViewById(R.id.SubmitButton).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -271,12 +230,10 @@ public class FleetRegistration extends AppCompatActivity {
 
                 // Show the loading progress bar
                 findViewById(R.id.loadingProgressBar).setVisibility(View.VISIBLE);
-
                 Submit();
             }
         });
     }
-
 
     private void Submit() {
         TextInputEditText fleetNameText = findViewById(R.id.editTextFleetName);
@@ -296,19 +253,79 @@ public class FleetRegistration extends AppCompatActivity {
     }
 
 
-    private void handleSignUpResult(String message) {
-        if (message != null) {
-            Log("handleAuthResult", "Registration request sent", message);
+    private void handleFleetResponse(FleetCheckResponse response) {
+        if (response != null) {
+            Log("handleAuthResult", "Registration request sent", response.getMessage());
 
             // Update the user newFleet status
-            FleetStateManager fleetManager = FleetStateManager.getInstance();
-            fleetManager.setFleet(newFleet);
+            fleetManager.setFleet(response.getFleet());
+            Log("handleAuthResult", "response.Fleet: ", response.getFleet().toString());
+            Log("handleAuthResult", "fleetManager.Fleet: ", fleetManager.getFleet().toString());
 
-            // Hide the registration layout
             findViewById(R.id.fleetRegistrationLayout).setVisibility(View.GONE);
 
-            // Show the pending layout
-            findViewById(R.id.PendingLayout).setVisibility(View.VISIBLE);
+            /*
+            code       New status           Check/Reg/Retry                                              response
+
+            200 = Pending                 Newest registration                  --> Fleet (=user copy) will be sent to manager
+            201 = Approved                Approved (check/Retry)               --> Fleet (server copy) will be sent to manager
+            202 = Pending                 Pending (check/Retry)                --> Fleet (server copy/=user copy) will be sent to manager
+            203 = Rejected                Rejected (check)                     --> Fleet (server copy) will be sent to manager
+            204 = Suspended                Suspended (check/Retry)             --> Fleet (server copy) will be sent to manager
+
+            400-500 = Errors --> No fleets
+             */
+
+            if (response.getResponseCode() == 201) {
+
+                // if Approved we have to see if the fleet is already has bus accounts
+                busViewModel.loadAllBusAccounts(userManager.getUser().getEmail());
+
+                // Hide
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.GONE);
+                findViewById(R.id.PendingLayout).setVisibility(View.GONE);
+                findViewById(R.id.SuspendedLayout).setVisibility(View.GONE);
+                findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+                // Show the ApprovedLayout layout
+                findViewById(R.id.ApprovedLayout).setVisibility(View.VISIBLE);
+                initContinueButton();
+
+            } else if (response.getResponseCode() == 200 || response.getResponseCode() == 202) {
+                // Hide
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.GONE);
+                findViewById(R.id.ApprovedLayout).setVisibility(View.GONE);
+                findViewById(R.id.SuspendedLayout).setVisibility(View.GONE);
+                findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+                // Show the pending layout
+                findViewById(R.id.PendingLayout).setVisibility(View.VISIBLE);
+            } else if (response.getResponseCode() == 203) {
+                // Hide
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.GONE);
+                findViewById(R.id.ApprovedLayout).setVisibility(View.GONE);
+                findViewById(R.id.SuspendedLayout).setVisibility(View.GONE);
+                findViewById(R.id.PendingLayout).setVisibility(View.GONE);
+                // Show the RejectedLayout layout
+                findViewById(R.id.RejectedLayout).setVisibility(View.VISIBLE);
+                initRetryButton();
+            } else if (response.getResponseCode() == 204) {
+                // Hide
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.GONE);
+                findViewById(R.id.ApprovedLayout).setVisibility(View.GONE);
+                findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+                findViewById(R.id.PendingLayout).setVisibility(View.GONE);
+                // Show the SuspendedLayout layout
+                findViewById(R.id.SuspendedLayout).setVisibility(View.VISIBLE);
+            } else {
+                // Hide
+                findViewById(R.id.ApprovedLayout).setVisibility(View.GONE);
+                findViewById(R.id.RejectedLayout).setVisibility(View.GONE);
+                findViewById(R.id.PendingLayout).setVisibility(View.GONE);
+                findViewById(R.id.SuspendedLayout).setVisibility(View.GONE);
+                // Show
+                findViewById(R.id.fleetRegistrationLayout).setVisibility(View.VISIBLE);
+            }
+            // Hide the loading progress bar
+            findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
         }
     }
 

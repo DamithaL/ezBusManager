@@ -1,4 +1,4 @@
-package ezbus.mit20550588.manager.data.viewModel;
+package ezbus.mit20550588.manager.data.network.responses;
 
 import ezbus.mit20550588.manager.data.model.UserModel;
 

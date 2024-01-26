@@ -53,11 +53,17 @@ public class BusListAdapter extends ListAdapter<BusModel, BusListAdapter.ViewHol
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         BusModel currentBus = getItem(position);
-        holder.nickNameTextView.setText(currentBus.getBusNickName());
-        holder.busRegNumberTextView.setText(currentBus.getBusRegNumber());
-        holder.busRouteNumberTextView.setText(currentBus.getBusRouteNumber());
-        holder.busRouteNameTextView.setText(currentBus.getBusRouteName());
-        holder.busEmergencyNumberTextView.setText(currentBus.getBusEmergencyNumber());
+
+        String routeNumberName = currentBus.getBusRouteNumber() + " | " + currentBus.getBusRouteName();
+        String busNickName = currentBus.getBusNickName();
+        String busRegNumber = "Reg. Number: " + currentBus.getBusRegNumber();
+        String busEmergencyNumber = "Emergency: " + currentBus.getBusEmergencyNumber();
+
+        holder.nickNameTextView.setText(busNickName);
+        holder.busRegNumberTextView.setText(busRegNumber);
+        holder.busRouteNumberNameTextView.setText(routeNumberName);
+        holder.busEmergencyNumberTextView.setText(busEmergencyNumber);
+
         holder.busImageView.setColorFilter(Integer.parseInt(currentBus.getBusColor()));
 
     }
@@ -66,8 +72,7 @@ public class BusListAdapter extends ListAdapter<BusModel, BusListAdapter.ViewHol
     class ViewHolder extends RecyclerView.ViewHolder {
         private TextView nickNameTextView;
         private TextView busRegNumberTextView;
-        private TextView busRouteNumberTextView;
-        private TextView busRouteNameTextView;
+        private TextView busRouteNumberNameTextView;
         private TextView busEmergencyNumberTextView;
         private ImageView busImageView;
 
@@ -75,8 +80,7 @@ public class BusListAdapter extends ListAdapter<BusModel, BusListAdapter.ViewHol
             super(itemView);
             nickNameTextView = itemView.findViewById(R.id.busNickNameTextView);
             busRegNumberTextView = itemView.findViewById(R.id.busNumberTextView);
-            busRouteNumberTextView = itemView.findViewById(R.id.routeNumberTextView);
-            busRouteNameTextView = itemView.findViewById(R.id.routeNameTextView);
+            busRouteNumberNameTextView = itemView.findViewById(R.id.routeNameNumberTextView);
             busEmergencyNumberTextView = itemView.findViewById(R.id.emergencyNumberTextView);
             busImageView = itemView.findViewById(R.id.busImageView);
 

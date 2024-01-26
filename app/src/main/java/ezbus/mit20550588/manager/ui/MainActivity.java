@@ -6,12 +6,9 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.InputMethodManager;
@@ -19,8 +16,8 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,58 +31,36 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.json.JSONArray;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import ezbus.mit20550588.manager.R;
 import ezbus.mit20550588.manager.data.model.BusModel;
+import ezbus.mit20550588.manager.data.network.requests.BusRegistrationRequest;
+import ezbus.mit20550588.manager.data.network.responses.BusRegResponse;
 import ezbus.mit20550588.manager.data.viewModel.BusViewModel;
 import ezbus.mit20550588.manager.ui.Login.FleetRegistration;
 import ezbus.mit20550588.manager.ui.Login.Login;
 import ezbus.mit20550588.manager.ui.Settings.Settings;
 import ezbus.mit20550588.manager.ui.adapters.BusListAdapter;
-import ezbus.mit20550588.manager.util.Constants;
 import ezbus.mit20550588.manager.util.FleetStateManager;
 import ezbus.mit20550588.manager.util.UserStateManager;
 import yuku.ambilwarna.AmbilWarnaDialog;
 
 
 public class MainActivity extends AppCompatActivity {
-
-    // ------------------------------- DECLARING VARIABLES ------------------------------- //
-
-    // -------------- widgets -------------- //
-
-
-    // -------------- constants -------------- //
-
     private static final int ERROR_DIALOG_REQUEST = 9001;
-
-    // -------------- variables -------------- //
-
-    // ---- permissions ---- //
     private SharedPreferences preferences;
-
     private int currentColor;
     private TextView colorEditText;
-
     private List<String> validRouteNames = new ArrayList<>();
-
     private List<String> validRouteNumbers = new ArrayList<>();
     private AutoCompleteTextView routeNumberAutoCompleteTextView;
     private AutoCompleteTextView routeNameAutoCompleteTextView;
     private BusListAdapter busListAdapter;
-
-
+    private FleetStateManager fleetStateManager;
+    private UserStateManager userManager;
     private BusViewModel busViewModel;
 
     // ------------------------------- LIFECYCLE METHODS ------------------------------- //
@@ -94,11 +69,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Log("MainActivity", "onCreate", "Started");
+
         findViewById(R.id.loadingProgressBar).setVisibility(View.VISIBLE);
+        busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
         managerAuthentication();
         checkPermissions();
-        busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
-        uiInitializations();
+
+
 
     }
 
@@ -137,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
     // ------------------------------- INITIALIZATION METHODS ------------------------------- //
     private void managerAuthentication() {
         Log("managerAuthentication", "starting");
-        UserStateManager userManager = UserStateManager.getInstance();
+        userManager = UserStateManager.getInstance();
 
         // Set up an OnPreDrawListener to the root view.
         final View content = findViewById(android.R.id.content);
@@ -173,47 +151,92 @@ public class MainActivity extends AppCompatActivity {
 
     private void fleetAuthentication() {
         Log("fleetAuthentication", "starting");
-        FleetStateManager fleetManager = FleetStateManager.getInstance();
+        fleetStateManager = FleetStateManager.getInstance();
+        try {
+            Log("fleetAuthentication", "fleetStateManager", "fleetStateManager" + fleetStateManager.toString());
+            Log("fleetAuthentication", "fleetStateManager", "fleet" + fleetStateManager.getFleet().toString());
+            Log("fleetAuthentication", "fleetStateManager", "FleetRegistrationNumber" + fleetStateManager.getFleet().getFleetRegistrationNumber());
+        } catch (Exception e) {
+            Log("fleetAuthentication", "ERROR", e.getMessage());
+        }
 
-        if (!fleetManager.isFleetLoggedIn()) {
 
+        if (!fleetStateManager.isFleetLoggedIn()) {
+            Log("fleetAuthentication", "Fleet not logged in");
             Intent authIntent = new Intent(MainActivity.this, FleetRegistration.class);
             startActivity(authIntent);
             finish();
+        } else {
+            Log("fleetAuthentication", "Fleet logged in");
+
+            busViewModel.loadBusAccountsLiveData().observe(this, busAccounts -> {
+                if (busAccounts != null) {
+                    Log("fleetAuthentication", "loadBusAccountsLiveData", "Received");
+                    if (busAccounts.size() > 0) {
+                        uiInitializations();
+                    }
+                }
+            });
+
+            busViewModel.loadAllBusAccounts(userManager.getUser().getEmail());
         }
     }
 
 
     private void uiInitializations() {
 
-        findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
+        Log("MainActivity", "uiInitializations", "started");
 
         initSettingsButton();
-        busViewModel.getBusCount().observe(this, new Observer<Integer>() {
-            @Override
-            public void onChanged(Integer integer) {
-                if (integer != null) {
-                    if (integer == 0) {
-                        findViewById(R.id.NoBussesLayout).setVisibility(View.VISIBLE);
-                        findViewById(R.id.AddFirstBusButton).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                findViewById(R.id.NoBussesLayout).setVisibility(View.GONE);
-                                initNewBusForm();
-                            }
-                        });
+        busViewModel.busCountLiveData().observe(this, busCount -> {
+            if (busCount != null) {
+                TextView busCountText = findViewById(R.id.countOfBussesTextView);
+
+                if (busCount == 0) {
+                    String newText = "No Buses Added Yet";
+                    busCountText.setText(newText);
+
+                    findViewById(R.id.NoBussesLayout).setVisibility(View.VISIBLE);
+                    findViewById(R.id.AddBusButton).setVisibility(View.GONE);
+                    findViewById(R.id.pageTitle).setVisibility(View.GONE);
+                    findViewById(R.id.dashboardLayout).setVisibility(View.GONE);
+
+                    findViewById(R.id.AddFirstBusButton).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            findViewById(R.id.NoBussesLayout).setVisibility(View.GONE);
+                            initNewBusForm();
+                        }
+                    });
+                } else {
+
+                    if (busCount == 1) {
+                        String newText = "You currently have " + busCount + " bus in your fleet.";
+                        busCountText.setText(newText);
                     } else {
-                        initDashboard();
+                        String newText = "You currently have " + busCount + " buses in your fleet.";
+                        busCountText.setText(newText);
                     }
+                    initDashboard();
                 }
             }
+
         });
+        busViewModel.getBusAccountsCount();
+
+        findViewById(R.id.loadingProgressBar).setVisibility(View.GONE);
     }
 
     private void initDashboard() {
+
+        Log("MainActivity", "initDashboard", "started");
+
+        findViewById(R.id.BackButton).setVisibility(View.GONE);
         findViewById(R.id.addBusFormLayout).setVisibility(View.GONE);
         findViewById(R.id.AddBusButton).setVisibility(View.VISIBLE);
         findViewById(R.id.pageTitle).setVisibility(View.VISIBLE);
+        findViewById(R.id.dashboardLayout).setVisibility(View.VISIBLE);
+
         findViewById(R.id.AddBusButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -230,27 +253,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewForBusses.setAdapter(busListAdapter);
         busListAdapter.setRecyclerView(recyclerViewForBusses);
         busViewModel = new ViewModelProvider(this).get(BusViewModel.class);
-        busViewModel.getBusAccounts().observe(this, new Observer<List<BusModel>>() {
-            @Override
-            public void onChanged(List<BusModel> busList) {
-                busListAdapter.submitList(busList);
-                busListAdapter.scrollToTop();
-            }
-        });
 
-        TextView busCountText = findViewById(R.id.countOfBussesTextView);
-        busViewModel.getBusCount().observe(this, new Observer<Integer>() {
-            @Override
-            public void onChanged(Integer integer) {
-                if (integer == 1) {
-                    String newText = "You currently have " + integer + " bus in your fleet.";
-                    busCountText.setText(newText);
-                } else {
-                    String newText = "You currently have " + integer + " buses in your fleet.";
-                    busCountText.setText(newText);
-                }
-            }
-        });
     }
 
     private void initSettingsButton() {
@@ -274,7 +277,22 @@ public class MainActivity extends AppCompatActivity {
     // ------------------------------- NEW BUS CREATION METHODS ------------------------------- //
     private void initNewBusForm() {
 
+        Log("MainActivity", "initNewBusForm", "started");
+
+        findViewById(R.id.dashboardLayout).setVisibility(View.GONE);
+        findViewById(R.id.AddBusButton).setVisibility(View.GONE);
+        findViewById(R.id.pageTitle).setVisibility(View.GONE);
         findViewById(R.id.addBusFormLayout).setVisibility(View.VISIBLE);
+        findViewById(R.id.BackButton).setVisibility(View.VISIBLE);
+
+        // Back button
+        ImageButton backButton = findViewById(R.id.BackButton);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initDashboard();
+            }
+        });
 
         // ------------ BUS ROUTE NUMBER AND NAME ------------ //
         routeNumberAutoCompleteTextView = findViewById(R.id.routeNumberAutoCompleteTextView);
@@ -349,9 +367,23 @@ public class MainActivity extends AppCompatActivity {
             }
             // If the AutoCompleteTextView is focused, show the dropdown list
             else {
+                if (validRouteNumbers.isEmpty()) {
+                    busViewModel.fetchRouteNumbers();
+                }
                 routeNumberAutoCompleteTextView.showDropDown();
             }
         });
+
+        routeNumberAutoCompleteTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (validRouteNumbers.isEmpty()) {
+                    busViewModel.fetchRouteNumbers();
+                }
+                routeNumberAutoCompleteTextView.showDropDown();
+            }
+        });
+
     }
 
     private void initFocusChangeListenerForRouteName() {
@@ -373,6 +405,21 @@ public class MainActivity extends AppCompatActivity {
             }
             // If the AutoCompleteTextView is focused, show the dropdown list
             else {
+                String enteredRouteNumber = routeNumberAutoCompleteTextView.getText().toString();
+                if (!enteredRouteNumber.isEmpty()) {
+                    busViewModel.fetchRouteNames(enteredRouteNumber);
+                }
+                routeNameAutoCompleteTextView.showDropDown();
+            }
+        });
+
+        routeNameAutoCompleteTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String enteredRouteNumber = routeNumberAutoCompleteTextView.getText().toString();
+                if (!enteredRouteNumber.isEmpty()) {
+                    busViewModel.fetchRouteNames(enteredRouteNumber);
+                }
                 routeNameAutoCompleteTextView.showDropDown();
             }
         });
@@ -396,8 +443,38 @@ public class MainActivity extends AppCompatActivity {
                 if (validateAddNewBusForm(busNickName, busNumber, routeNumber, routeName, emergencyContact, busColor)) {
                     BusModel newBus = new BusModel(busNickName, busNumber, routeNumber, routeName, emergencyContact, busColor, null);
 
-                    busViewModel.addNewBus(newBus);
-                    Log("Main", "initNewBusFormSubmitButton", "new bus added");
+                    busViewModel.getBusRegResponseLiveData().observe(MainActivity.this, new Observer<BusRegResponse>() {
+                        @Override
+                        public void onChanged(BusRegResponse response) {
+                            if (response != null) {
+                                if (response.isSuccess()) {
+                                    Log("Main", "initNewBusFormSubmitButton", "new bus added");
+                                    Log("Main", "initNewBusFormSubmitButton", "response" + response);
+                                    initDashboard();
+                                    // clear bus registration form fields
+                                    ((EditText) findViewById(R.id.editTextBusNickName)).setText("");
+                                    ((EditText) findViewById(R.id.editTextRegistrationNumber)).setText("");
+                                    routeNumberAutoCompleteTextView.setText("");
+                                    routeNameAutoCompleteTextView.setText("");
+                                    ((EditText) findViewById(R.id.editTextEmergencyContact)).setText("");
+                                    ((TextView) findViewById(R.id.colorEditText)).setText("");
+                                    currentColor = 0;
+                                    colorEditText.setBackgroundColor(currentColor);
+
+                                } else {
+                                    TextView errorTextView = findViewById(R.id.errorMessageTextView);
+                                    errorTextView.setText(response.getMessage());
+                                }
+                            }
+                        }
+                    });
+
+                    Log("Main", "initNewBusFormSubmitButton", "FleetRegistrationNumber: " + fleetStateManager.getFleet().getFleetRegistrationNumber());
+
+                    BusRegistrationRequest registrationRequest = new BusRegistrationRequest(newBus);
+
+                    busViewModel.addNewBus(registrationRequest);
+
                 } else {
                     Log("Main", "initNewBusFormSubmitButton", "invalid form");
                 }

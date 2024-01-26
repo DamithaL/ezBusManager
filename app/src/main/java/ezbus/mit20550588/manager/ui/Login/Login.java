@@ -12,7 +12,6 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
-import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ClickableSpan;
@@ -27,9 +26,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import ezbus.mit20550588.manager.R;
-import ezbus.mit20550588.manager.data.viewModel.AuthResult;
+import ezbus.mit20550588.manager.data.network.responses.AuthResult;
 import ezbus.mit20550588.manager.data.viewModel.AuthViewModel;
-import ezbus.mit20550588.manager.ui.ForgotPassword.ForgotPassword;
 import ezbus.mit20550588.manager.ui.MainActivity;
 import ezbus.mit20550588.manager.util.UserStateManager;
 

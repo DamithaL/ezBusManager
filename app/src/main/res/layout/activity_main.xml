@@ -19,6 +19,16 @@
         android:orientation="horizontal"
         android:padding="10dp">
 
+        <!--Back button-->
+        <ImageButton
+            android:id="@+id/BackButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:backgroundTint="@color/white"
+            android:padding="14dp"
+            android:src="@drawable/button_back_24"
+            app:iconTint="@color/black" />
+
         <!-- Page title -->
         <TextView
             android:id="@+id/pageTitle"
@@ -29,7 +39,6 @@
             android:paddingStart="20dp"
             android:text="Dashboard"
             android:textColor="@color/black"
-            android:visibility="gone"
             android:textSize="@dimen/app_title_font_size"
             android:textStyle="bold" />
 
@@ -224,7 +233,7 @@
                 android:layout_height="wrap_content"
                 android:completionThreshold="1"
                 android:hint="@string/add_bus_text_input_hint_bus_route_number"
-                android:inputType="text"
+                android:inputType="textNoSuggestions"
                 android:padding="15dp"
                 android:textSize="16sp" />
 
@@ -252,7 +261,7 @@
                 android:layout_height="wrap_content"
                 android:completionThreshold="1"
                 android:hint="@string/add_bus_text_input_hint_bus_route_name"
-                android:inputType="text"
+                android:inputType="textNoSuggestions"
                 android:padding="15dp"
                 android:textSize="16sp" />
 
@@ -320,11 +329,12 @@
 
     <!-- Dashboard -->
     <LinearLayout
+        android:id="@+id/dashboardLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/topButtonLine"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingTop="20dp">
 
         <TextView
             android:id="@+id/countOfBussesTextView"
@@ -342,7 +352,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="15dp"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
     </LinearLayout>
 

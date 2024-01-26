@@ -1,6 +1,7 @@
 package ezbus.mit20550588.manager.data.dao;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -19,13 +20,17 @@ public interface BusAccountDao {
     void insertNewBus(BusModel busAccountModel);
 
     @Query("SELECT * FROM bus_account_table ORDER BY busNickName ASC")
-    LiveData<List<BusModel>> getAllBusAccounts();
+    List<BusModel>  getAllBusAccountsLiveData();
 
     @Update
     void updateBusAccount(BusModel busAccount);
 
+    @Update
+    void updateAllBusAccounts(List<BusModel> busAccounts);
+
     @Delete
     void deleteBusAccount(BusModel busAccount);
+
 
     @Query("SELECT * FROM bus_account_table WHERE busId = :busId LIMIT 1")
     BusModel getBusByBusId(String busId);
@@ -34,4 +39,9 @@ public interface BusAccountDao {
     @Query("SELECT COUNT(*) FROM bus_account_table")
     LiveData<Integer> getBusCount();
 
+    @Query("DELETE FROM bus_account_table")
+    void deleteAllBusAccounts();
+
+    @Insert
+    void insertBusAccounts(List<BusModel> busAccounts);
 }

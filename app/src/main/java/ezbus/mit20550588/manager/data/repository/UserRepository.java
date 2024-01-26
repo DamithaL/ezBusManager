@@ -10,9 +10,9 @@ import java.util.Map;
 
 import ezbus.mit20550588.manager.data.model.UserModel;
 import ezbus.mit20550588.manager.data.network.ApiServiceAuthentication;
-import ezbus.mit20550588.manager.data.network.LoginRequest;
-import ezbus.mit20550588.manager.data.network.RegistrationRequest;
-import ezbus.mit20550588.manager.data.viewModel.AuthResult;
+import ezbus.mit20550588.manager.data.network.requests.LoginRequest;
+import ezbus.mit20550588.manager.data.network.requests.RegistrationRequest;
+import ezbus.mit20550588.manager.data.network.responses.AuthResult;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;

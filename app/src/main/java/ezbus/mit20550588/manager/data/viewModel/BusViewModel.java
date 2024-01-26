@@ -6,16 +6,15 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
-import java.io.Closeable;
 import java.util.List;
 
 import ezbus.mit20550588.manager.data.model.BusModel;
 import ezbus.mit20550588.manager.data.network.ApiBus;
+import ezbus.mit20550588.manager.data.network.requests.BusRegistrationRequest;
 import ezbus.mit20550588.manager.data.network.RetrofitClient;
+import ezbus.mit20550588.manager.data.network.responses.BusRegResponse;
 import ezbus.mit20550588.manager.data.repository.BusRepository;
-import ezbus.mit20550588.manager.data.repository.FleetRepository;
 
 public class BusViewModel extends AndroidViewModel {
     private final BusRepository busRepository;
@@ -24,7 +23,11 @@ public class BusViewModel extends AndroidViewModel {
     private final LiveData<List<String>> routesNamesLiveData;
     private MutableLiveData<String> errorMessageLiveData;
 
-    private LiveData<List<BusModel>> allBusAccounts;
+    private MutableLiveData<BusRegResponse> busRegResponseLiveData = new MutableLiveData<>();
+    private LiveData<Integer> busCountLiveData;
+    private LiveData<List<BusModel>> allBusAccountsLiveData;
+
+
 
     public BusViewModel(@NonNull Application application) {
         super(application);
@@ -32,6 +35,9 @@ public class BusViewModel extends AndroidViewModel {
         this.routesNumbersLiveData = busRepository.getRouteNumbersLiveData();
         this.routesNamesLiveData = busRepository.getRouteNamesLiveData();
         this.errorMessageLiveData = busRepository.getErrorMessageLiveData();
+        this.busCountLiveData = busRepository.allBusCountLiveData();
+        this.allBusAccountsLiveData = busRepository.loadAllBusAccountsLiveData();
+        this.busRegResponseLiveData = busRepository.getBusRegResponseLiveData();
     }
 
 //    public BusViewModel(BusRepository busRepository) {
@@ -53,8 +59,16 @@ public class BusViewModel extends AndroidViewModel {
         return routesNumbersLiveData;
     }
 
-    public  LiveData<Integer> getBusCount(){
-        return busRepository.getBusCount();
+    public LiveData<BusRegResponse> getBusRegResponseLiveData() {
+        return busRegResponseLiveData;
+    }
+
+    public  LiveData<Integer> busCountLiveData(){
+        return busCountLiveData;
+    }
+
+    public LiveData<List<BusModel>> loadBusAccountsLiveData() {
+        return allBusAccountsLiveData;
     }
 
     public void fetchRouteNumbers() {
@@ -65,12 +79,22 @@ public class BusViewModel extends AndroidViewModel {
         busRepository.fetchRouteNames(enteredRouteNumber);
     }
 
-    public void addNewBus(BusModel newBus) {
-        busRepository.addNewBus(newBus);
+//    public void addNewBus(BusModel newBus) {
+//        busRepository.addNewBus(newBus);
+//    }
+
+    public void addNewBus(BusRegistrationRequest registrationRequest) {
+        busRepository.addNewBus(registrationRequest);
+    }
+    public void loadAllBusAccounts(String email) {
+        busRepository.loadAllBusAccounts(email);
     }
 
-    public LiveData<List<BusModel>> getBusAccounts() {
-        return allBusAccounts;
+    public void getBusAccountsCount() {
+        busRepository.getAllBusCount();
     }
+
+
+
 
 }

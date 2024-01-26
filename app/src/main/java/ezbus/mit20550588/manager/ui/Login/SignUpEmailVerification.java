@@ -29,7 +29,7 @@ import android.widget.TextView;
 
 import ezbus.mit20550588.manager.R;
 import ezbus.mit20550588.manager.data.model.UserModel;
-import ezbus.mit20550588.manager.data.viewModel.AuthResult;
+import ezbus.mit20550588.manager.data.network.responses.AuthResult;
 import ezbus.mit20550588.manager.data.viewModel.AuthViewModel;
 import ezbus.mit20550588.manager.ui.MainActivity;
 import ezbus.mit20550588.manager.util.UserStateManager;

@@ -128,26 +128,28 @@ public class Settings extends AppCompatActivity {
 
         // Log out button clicked
         Button logOutButton = findViewById(R.id.logoutButton);
-        UserStateManager userManager = UserStateManager.getInstance();
+
         logOutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (userManager.getUser() != null){
-                    Log("Log Out", "USER", userManager.getUser().toString());
-                    // Update the user login status
-                    userManager.setUserLoggedIn(false);
-                    userManager.setUser(null);
-                }
 
-
-
-                // Navigate to the login activity
-                Intent loginIntent = new Intent(getApplicationContext(), Login.class);
-                startActivity(loginIntent);
-                finish(); // Optionally, finish the current activity
+                LogOut();
             }
         });
 
+    }
+
+    private void LogOut() {
+        UserStateManager userManager = UserStateManager.getInstance();
+        if (userManager != null){
+            Log("Log Out", "USER", userManager.getUser().toString());
+
+            userManager.logout(this);
+        }
+        // Navigate to the login activity
+        Intent loginIntent = new Intent(getApplicationContext(), Login.class);
+        startActivity(loginIntent);
+        finish(); // Optionally, finish the current activity
     }
 
     // function to the button on press

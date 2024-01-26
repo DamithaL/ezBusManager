@@ -1,5 +1,7 @@
 package ezbus.mit20550588.manager.util;
 
+import static ezbus.mit20550588.manager.util.Constants.Log;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -8,6 +10,8 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 
+import ezbus.mit20550588.manager.data.database.AppDatabase;
+import ezbus.mit20550588.manager.data.database.ClearDatabaseAsyncTask;
 import ezbus.mit20550588.manager.data.model.UserModel;
 
 public class UserStateManager {
@@ -64,9 +68,36 @@ public class UserStateManager {
     private void loadUserModel() {
         String userModelJson = preferences.getString(KEY_USER_MODEL, null);
         if (userModelJson != null) {
-            Type type = new TypeToken<UserModel>() {}.getType();
+            Type type = new TypeToken<UserModel>() {
+            }.getType();
             user = gson.fromJson(userModelJson, type);
         }
     }
 
+
+    public void logout(Context context) {
+        // Clear user authentication data
+        clearUserData();
+
+        // Set user as not logged in
+        setUserLoggedIn(false);
+
+        // Optionally, set the user to null
+        UserStateManager.getInstance().setUser(null);
+
+        // Reset user data in FleetStateManager (replace with your actual class)
+        FleetStateManager.getInstance().clearFleetData();
+
+        // Clear tables in the database
+        ClearDatabaseAsyncTask task = new ClearDatabaseAsyncTask(AppDatabase.getInstance(context));
+        task.performBackgroundTask();
+    }
+
+    private void clearUserData() {
+        // To REMOVE ALL SHARED PREFERENCES DATA:
+        // preferences.edit().clear().apply();
+
+        // Clear both user model and logged-in status
+        preferences.edit().remove(KEY_USER_MODEL).remove(KEY_USER_LOGGED_IN).apply();
+    }
 }

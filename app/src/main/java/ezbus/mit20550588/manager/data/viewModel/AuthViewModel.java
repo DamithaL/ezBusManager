@@ -16,6 +16,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import ezbus.mit20550588.manager.R;
 import ezbus.mit20550588.manager.data.model.UserModel;
 import ezbus.mit20550588.manager.data.network.ApiServiceAuthentication;
+import ezbus.mit20550588.manager.data.network.responses.AuthResult;
 import ezbus.mit20550588.manager.data.network.RetrofitClient;
 import ezbus.mit20550588.manager.data.repository.UserRepository;
 import ezbus.mit20550588.manager.util.Validator;

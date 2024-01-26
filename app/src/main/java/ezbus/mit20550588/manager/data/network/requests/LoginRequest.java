@@ -1,4 +1,4 @@
-package ezbus.mit20550588.manager.data.network;
+package ezbus.mit20550588.manager.data.network.requests;
 
 public class LoginRequest {
     private String email;

@@ -1,33 +1,24 @@
 package ezbus.mit20550588.manager.data.viewModel;
 
 import static ezbus.mit20550588.manager.util.Constants.Log;
-import static ezbus.mit20550588.manager.util.PasswordHash.hashPasswordSHA;
 
-import android.graphics.drawable.Drawable;
-
-import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
-import ezbus.mit20550588.manager.R;
 import ezbus.mit20550588.manager.data.model.FleetModel;
-import ezbus.mit20550588.manager.data.model.UserModel;
 import ezbus.mit20550588.manager.data.network.ApiBus;
-import ezbus.mit20550588.manager.data.network.ApiServiceAuthentication;
+import ezbus.mit20550588.manager.data.network.responses.FleetCheckResponse;
 import ezbus.mit20550588.manager.data.network.RetrofitClient;
 import ezbus.mit20550588.manager.data.repository.FleetRepository;
-import ezbus.mit20550588.manager.data.repository.UserRepository;
-import ezbus.mit20550588.manager.util.Validator;
 
 
 public class FleetViewModel extends ViewModel {
     private final FleetRepository fleetRepository;
-    private LiveData<CheckFleetStatusResponse> checkFleetStatusLiveData;
-    private LiveData<String> regReqResponseLiveData;
+    private LiveData<FleetCheckResponse> checkFleetStatusLiveData;
+    private LiveData<FleetCheckResponse> regReqResponseLiveData;
     private MutableLiveData<String> errorMessageLiveData;
 
     public FleetViewModel() {
@@ -52,16 +43,16 @@ public class FleetViewModel extends ViewModel {
         return errorMessageLiveData;
     }
 
-    public LiveData<CheckFleetStatusResponse> getCheckFleetStatusLiveData() {
+    public LiveData<FleetCheckResponse> getCheckFleetStatusLiveData() {
         return checkFleetStatusLiveData;
     }
 
-    public LiveData<String> getRegReqResponseLiveData() {
+    public LiveData<FleetCheckResponse> getRegReqResponseLiveData() {
         return regReqResponseLiveData;
     }
 
-    public void checkFleetStatus(FleetModel fleet) {
-        fleetRepository.checkFleetStatus(fleet);
+    public void checkFleetStatus(String email) {
+        fleetRepository.checkFleetStatus(email);
     }
 
     public void registerFleet(FleetModel newFleet, TextInputEditText fleetNameTextInput, TextInputEditText fleetRegNumTextInput) {
